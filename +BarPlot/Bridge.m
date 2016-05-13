@@ -86,8 +86,16 @@ classdef Bridge < handle
         function [hLine, hText] = render(br, ax, aa, x1, x2) %#ok<INUSL>
             width1 = br.bar1.Width;
             width2 = br.bar2.Width;
-            x1 = x1 + width1/10;
-            x2 = x2 - width2/10;
+            
+            % add a 10% offset so that adjacent bridges don't touch
+            if x1 < x2
+                x1 = x1 + width1/10;
+                x2 = x2  - width2/10;
+            else
+                x1 = x1 - width1/10;
+                x2 = x2 + width2/10;
+            end
+            
             % here we decide whether to use 4 points or 2 if tickLength == 0
             if br.tickLength > 0 || br.extendToBars
                 x = [x1 x1 x2 x2];

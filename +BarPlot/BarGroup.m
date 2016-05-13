@@ -81,13 +81,14 @@ classdef BarGroup < handle
        
     methods(Access=?BarPlot)
         function [xRight, barCenters] = render(g, axh, aa, xLeft)
+            import AutoAxis.PositionType;
             xc = xLeft + g.baselineOverhang;
             barCenters = nanvec(numel(g.bars));
             
             % render bars
             [hBar, hError] = deal(cell(numel(g.bars)));
             for i = 1:numel(g.bars)
-                [xc, barCenters(i), hBar{i}, hError{i}] = g.bars(i).render(g, axh, aa, xc);
+                [xc, barCenters(i), hBar{i}, hError{i}] = g.bars(i).render(axh, aa, xc);
                 xc = xc + g.barGap;
             end
             hBar = cat(1, hBar{:});
@@ -119,6 +120,10 @@ classdef BarGroup < handle
                     'FontSize', g.FontSize, ...
                     'VerticalAlignment', 'top', 'HorizontalAlignment', 'center', 'Background', 'none');
    
+                a = AutoAxis.AnchorInfo(hText, PositionType.Top, 'BarPlot_barLabels', PositionType.Bottom, ...
+                    'tickLabelOffset', 'BarPlot: anchor group label below all bar labels');
+                aa.addAnchor(a);
+                
                 aa.addHandlesToCollection('BarPlot_groupLabels', hText); 
             end
             
@@ -127,7 +132,6 @@ classdef BarGroup < handle
                 % sort them in order such that smaller bridges come first
                 % and bridges that span them come later
                 [belowBr, aboveBr] = g.sortBridges();
-                import AutoAxis.PositionType;
                 
                 for dir = 1:2
                     above = dir == 1;
@@ -171,9 +175,13 @@ classdef BarGroup < handle
                 end
             end
         end
-
+        
+        function str = getBarLabelsCollectionName(g)
+            str = sprintf('BarPlot_groupBarLabels_%s', g.guid);
+        end
+        
         function idx = findBarInGroup(g, bar)
-            idx = find(b == g.bars);
+            idx = find(bar == g.bars);
         end
     end
 

@@ -19,6 +19,13 @@ classdef Bar < handle
         HorizontalAlignment
         LabelRotation
         
+        FontNameAbove
+        FontWeightAbove
+        FontSizeAbove
+        FontColorAbove
+        HorizontalAlignmentAbove
+        LabelRotationAbove
+        
         FaceColor
         EdgeColor
         
@@ -49,17 +56,26 @@ classdef Bar < handle
             
             p = inputParser();
             p.addRequired('group', @(g) isa(g, 'BarPlot.BarGroup'));
-            p.addParameter('labelAbove', '', @ischar);
+            p.addParameter('labelAbove', '', @(x) ischar(x) || iscellstr(x));
             p.addParameter('FontName', ff, @ischar);
             p.addParameter('FontWeight', 'normal', @ischar);
             p.addParameter('FontSize', sz, @(x) isempty(x) || isscalar(x));
             p.addParameter('FontColor', tc, @(x) true);
             p.addParameter('HorizontalAlignment', 'center', @ischar);
             p.addParameter('LabelRotation', 0, @isscalar);
+            
+            p.addParameter('FontNameAbove', ff, @ischar);
+            p.addParameter('FontWeightAbove', 'normal', @ischar);
+            p.addParameter('FontSizeAbove', sz, @(x) isempty(x) || isscalar(x));
+            p.addParameter('FontColorAbove', tc, @(x) true);
+            p.addParameter('HorizontalAlignmentAbove', 'center', @ischar);
+            p.addParameter('LabelRotationAbove', 0, @isscalar);
+            
             p.addParameter('Width', 0.8, @isscalar);
             p.addParameter('ErrorLineWidth', 3, @isscalar); % in points
             
             % redundant ways of specifying interval
+            p.addParameter('confInt', [], @(x) isempty(x) || isvector(x));
             p.addParameter('confLow', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('confHigh', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('errorLow', [], @(x) isempty(x) || isscalar(x));
@@ -68,7 +84,7 @@ classdef Bar < handle
             
             p.addParameter('FaceColor', [0.5 0.5 0.5], @(x) true);
             p.addParameter('EdgeColor', 'none', @(x) true);
-            p.addParameter('ErrorColor', 'k', @(x) true);
+            p.addParameter('ErrorColor', [0.4 0.4 0.4], @(x) true);
             
             p.CaseSensitive = false;
             p.parse(varargin{:});
@@ -84,14 +100,27 @@ classdef Bar < handle
             b.FontColor = p.Results.FontColor;
             b.HorizontalAlignment = p.Results.HorizontalAlignment;
             b.LabelRotation = p.Results.LabelRotation;
+            
+            b.FontNameAbove = p.Results.FontNameAbove;
+            b.FontWeightAbove = p.Results.FontWeightAbove;
+            b.FontSizeAbove = p.Results.FontSizeAbove;
+            b.FontColorAbove = p.Results.FontColorAbove;
+            b.HorizontalAlignmentAbove = p.Results.HorizontalAlignmentAbove;
+            b.LabelRotationAbove = p.Results.LabelRotationAbove;
+            
             b.Width = p.Results.Width;
             b.FaceColor = p.Results.FaceColor;
             b.EdgeColor = p.Results.EdgeColor;
             b.ErrorColor = p.Results.ErrorColor;
             b.ErrorLineWidth = p.Results.ErrorLineWidth;
              
-            b.confLow = p.Results.confLow;
-            b.confHigh = p.Results.confHigh;
+            if ~isempty(p.Results.confInt)
+                b.confLow = min(p.Results.confInt);
+                b.confHigh = max(p.Results.confInt);
+            else
+                b.confLow = p.Results.confLow;
+                b.confHigh = p.Results.confHigh;
+            end
             b.errorLow = p.Results.errorLow;
             b.errorHigh = p.Results.errorHigh;
             b.error = p.Results.error;
@@ -159,7 +188,7 @@ classdef Bar < handle
     end
     
     methods(Access=?BarPlot.BarGroup)
-        function [xRight, xCenter, hBar, hError, hLabelAbove] = render(b, group, axh, aa, xLeft)
+        function [xRight, xCenter, hBar, hError, hLabelAbove] = render(b, axh, aa, xLeft)
             % determine actual error limits
             confHigh = b.highErrorLimit; %#ok<*PROPLC>
             confLow = b.lowErrorLimit;
@@ -168,11 +197,11 @@ classdef Bar < handle
             % collection to use for components of bars
             barCompsName = b.getComponentsCollectionName();
             
-            aboveBaseline = b.value > group.baseline;
+            aboveBaseline = b.above;
             
             % draw bar
-            if(b.value ~= group.baseline)
-                hBar = rectangle('Position', [xc, min(group.baseline, b.value), b.Width, abs(b.value-group.baseline)], ...
+            if(b.value ~= b.group.baseline)
+                hBar = rectangle('Position', [xc, min(b.group.baseline, b.value), b.Width, abs(b.value-b.group.baseline)], ...
                     'Parent', axh, 'FaceColor', b.FaceColor, 'EdgeColor', b.EdgeColor);
                 aa.addHandlesToCollection(barCompsName, hBar);
             else
@@ -202,8 +231,8 @@ classdef Bar < handle
                     y = confLow;
                 end
                 hLabelAbove = text(xc+b.Width/2, y, b.labelAbove, 'VerticalAlignment', vertAlign, ...
-                    'Color', b.FontColor, 'FontName', b.FontName, 'FontWeight', b.FontWeight, 'FontSize', b.FontSize, ...
-                    'HorizontalAlignment', 'center', ...
+                    'Color', b.FontColorAbove, 'FontName', b.FontNameAbove, 'FontWeight', b.FontWeightAbove, 'FontSize', b.FontSizeAbove, ...
+                    'HorizontalAlignment', b.HorizontalAlignmentAbove, 'Rotation', b.LabelRotationAbove, ...
                     'Background', 'none', 'YLimInclude', 'on');
                 aa.addHandlesToCollection(barCompsName, hLabelAbove);
             else
@@ -217,7 +246,15 @@ classdef Bar < handle
                 'VerticalAlignment', 'top', 'HorizontalAlignment', b.HorizontalAlignment, ...
                 'Rotation', b.LabelRotation, 'Background', 'none');
             
+            import AutoAxis.PositionType;
+            a = AutoAxis.AnchorInfo(hLabel, PositionType.Top, axh, PositionType.Bottom, ...
+                    'tickLabelOffset', 'BarPlot: anchor bar label below axis');
+            aa.addAnchor(a);
+            
+            % add label to global collection and collection just for this
+            % group
             aa.addHandlesToCollection('BarPlot_barLabels', hLabel);
+           % aa.addHandlesToCollection(b.group.getBarLabelsCollectionName(), hLabel);
             xRight = xc + b.Width;
             xCenter = xc + b.Width/2;
         end

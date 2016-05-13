@@ -8,7 +8,7 @@ classdef BarPlot < handle
         
     properties(SetAccess=protected)
         groups
-        bridges 
+        bridges
     end
         
     methods
