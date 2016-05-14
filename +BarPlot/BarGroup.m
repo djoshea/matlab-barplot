@@ -83,7 +83,7 @@ classdef BarGroup < handle
         function [xRight, barCenters] = render(g, axh, aa, xLeft)
             import AutoAxis.PositionType;
             xc = xLeft + g.baselineOverhang;
-            barCenters = nanvec(numel(g.bars));
+            barCenters = nan(numel(g.bars), 1);
             
             % render bars
             [hBar, hError] = deal(cell(numel(g.bars)));
