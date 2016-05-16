@@ -11,6 +11,7 @@ classdef Bridge < handle
         tickLength
         above
         avoidAdjacentBridges
+        offset
         
         Color
         LineWidth
@@ -42,7 +43,8 @@ classdef Bridge < handle
             p.addParameter('Color', 'k', @(x)true);
             p.addParameter('LineWidth', 1, @isscalar);
             p.addParameter('baseline', 0, @isscalar);
-            p.addParameter('tickLength', 0, @(x) ischar(x) || isscalar(x)); % points
+            p.addParameter('offset', 0.05, @isscalar);
+            p.addParameter('tickLength', 0.1, @(x) ischar(x) || isscalar(x)); % points
             p.addParameter('extendToBars', false, @islogical);
             p.addParameter('avoidAdjacentBridges', true, @islogical);
             p.parse(varargin{:});
@@ -55,6 +57,7 @@ classdef Bridge < handle
             br.tickLength = p.Results.tickLength;
             br.avoidAdjacentBridges = p.Results.avoidAdjacentBridges;
             br.extendToBars = p.Results.extendToBars;
+            br.offset = p.Results.offset;
             
             br.FontName = p.Results.FontName;
             br.FontWeight = p.Results.FontWeight;
@@ -117,26 +120,26 @@ classdef Bridge < handle
             
             import AutoAxis.PositionType;
             if br.extendToBars
-                % position the line at a literal offset from the min(y1 y2) bars' component collections 
+                % position the vertical edge lines at a literal offset from the min(y1 y2) bars' component collections 
                 ref1 = br.bar1.getComponentsCollectionName();
                 ref2 = br.bar2.getComponentsCollectionName();
                 if br.above
-                    a = AutoAxis.AnchorInfo(hLine, PositionType.Bottom, ref1, PositionType.Top, 0.05, ...
+                    a = AutoAxis.AnchorInfo(hLine, PositionType.Bottom, ref1, PositionType.Top, br.offset, ...
                         'BarPlot: anchor bridge extends just above left bar');
                     a.applyToPointsWithinLine = 1;
                     aa.addAnchor(a);
                     
-                    a = AutoAxis.AnchorInfo(hLine, PositionType.Bottom, ref2, PositionType.Top, 0.05, ...
+                    a = AutoAxis.AnchorInfo(hLine, PositionType.Bottom, ref2, PositionType.Top, br.offset, ...
                         'BarPlot: anchor bridge extends just above right bar');
                     a.applyToPointsWithinLine = 4;
                     aa.addAnchor(a);
                 else
-                    a = AutoAxis.AnchorInfo(hLine, PositionType.Top, ref1, PositionType.Bottom, 0.05, ...
+                    a = AutoAxis.AnchorInfo(hLine, PositionType.Top, ref1, PositionType.Bottom, br.offset, ...
                         'BarPlot: anchor bridge extends just below left bar');
                     a.applyToPointsWithinLine = 1;
                     aa.addAnchor(a);
                     
-                    a = AutoAxis.AnchorInfo(hLine, PositionType.Top, ref2, PositionType.Bottom, 0.05, ...
+                    a = AutoAxis.AnchorInfo(hLine, PositionType.Top, ref2, PositionType.Bottom, br.offset, ...
                         'BarPlot: anchor bridge extends just below right bar');
                     a.applyToPointsWithinLine = 4;
                     aa.addAnchor(a);
