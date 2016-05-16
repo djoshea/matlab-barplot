@@ -11,7 +11,7 @@ Rectangular bar plots with whiskers / confidence intervals, as well as violin pl
 
 From `example.m`:
 
-```
+```matlab
 bp = BarPlot('ylabel', 'Value');
 
 cmap = parula(8);
