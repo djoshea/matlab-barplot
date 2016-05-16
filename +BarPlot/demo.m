@@ -1,5 +1,6 @@
 function demo(varargin)
     p = inputParser();
+    p.addParameter('style', 'rectangle', @ischar);
     p.addParameter('seed', 1, @isscalar);
     p.addParameter('nGroups', 3, @isscalar);
     p.addParameter('nBars', 6, @isscalar);
@@ -28,20 +29,32 @@ function demo(varargin)
     for iG = 1:G
         g = bp.addGroup(sprintf('Group %d', iG));
         for iB = 1:B
-            v = 10*randn;
-            if p.Results.allPositive
-                v = abs(v);
+            barArgsCommon = {'FaceColor', cmap(iB, :), ...
+                'LabelRotation', p.Results.labelRotation, ...
+                'HorizontalAlignment', p.Results.labelAlignment};
+            
+            if strcmp(p.Results.style, 'rectangle')
+                v = 10*randn;
+                if p.Results.allPositive
+                    v = abs(v);
+                end
+                if ~p.Results.confidenceIntervals
+                    % draw error away from baseline
+                    errorArgs =  {'error', abs(2*randn)};
+                else
+                    % draw full interval error
+                    errorArgs = {'errorHigh', abs(2*randn), 'errorLow', abs(2*randn)};
+                end
+                g.addBar(sprintf('Bar %d', iB), v, 'labelAbove', sprintf('%.1f', v), ...
+                    errorArgs{:}, barArgsCommon{:});
+                
+            elseif strcmp(p.Results.style, 'violin')
+                v = 10*randn + 2*randn(100, 1);
+                if p.Results.allPositive
+                    v = abs(v);
+                end
+                g.addViolinBar(sprintf('Bar %d', iB), v, 'locationType', 'median', barArgsCommon{:});
             end
-            if ~p.Results.confidenceIntervals
-                % draw error away from baseline
-                errorArgs =  {'error', abs(2*randn)};
-            else
-                % draw full interval error
-                errorArgs = {'errorHigh', abs(2*randn), 'errorLow', abs(2*randn)};
-            end
-            g.addBar(sprintf('Bar %d', iB), v, errorArgs{:}, ...
-                'labelAbove', sprintf('%.1f', v), 'FaceColor', cmap(iB, :), ...
-                'LabelRotation', p.Results.labelRotation, 'HorizontalAlignment', p.Results.labelAlignment);
         end
 
         % draw random subset of bridges

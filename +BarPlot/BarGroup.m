@@ -58,7 +58,16 @@ classdef BarGroup < handle
         end
         
         function b = addBar(g, label, value, varargin)
-            b = BarPlot.Bar(label, value, g, varargin{:});
+            b = BarPlot.RectangleBar(g, label, value, varargin{:});
+            if isempty(g.bars)
+                g.bars = b;
+            else
+                g.bars(end+1, 1) = b;
+            end
+        end
+        
+        function b = addViolinBar(g, label, values, varargin)
+            b = BarPlot.ViolinBar(g, label, values, varargin{:});
             if isempty(g.bars)
                 g.bars = b;
             else
@@ -67,8 +76,8 @@ classdef BarGroup < handle
         end
         
         function br = addBridge(g, label, bar1, bar2, varargin)
-            assert(ismember(bar1, g.bars));
-            assert(ismember(bar2, g.bars));
+            assert(ismember(bar1, g.bars), 'Bar 1 not found within group, call addBridge on BarPlot root instead');
+            assert(ismember(bar2, g.bars), 'Bar 2 not found within group, call addBridge on BarPlot root instead');
             
             br = BarPlot.Bridge(label, bar1, bar2, g, varargin{:});
             if isempty(g.bridges)
@@ -86,13 +95,15 @@ classdef BarGroup < handle
             barCenters = nan(numel(g.bars), 1);
             
             % render bars
-            [hBar, hError] = deal(cell(numel(g.bars)));
+            [hStackBelowBaseline, hStackAboveBaseline] = deal(cell(numel(g.bars)));
             for i = 1:numel(g.bars)
-                [xc, barCenters(i), hBar{i}, hError{i}] = g.bars(i).render(axh, aa, xc);
+                [hStackBelowBaseline{i}, hStackAboveBaseline{i}] = g.bars(i).render(axh, aa, xc);
+                barCenters(i) = xc + g.bars(i).Width / 2;
+                xc = xc + g.bars(i).Width;
                 xc = xc + g.barGap;
             end
-            hBar = cat(1, hBar{:});
-            hError = cat(1, hError{:});
+            hStackBelowBaseline = cat(1, hStackBelowBaseline{:});
+            hStackAboveBaseline = cat(1, hStackAboveBaseline{:});
             xRight = xc + g.baselineOverhang;
             xCenter = mean([xLeft, xRight]);
             
@@ -103,12 +114,12 @@ classdef BarGroup < handle
                 'Color', g.baselineColor);
                 
                 % place baseline below error interval but above bars
-                if ~isempty(hError)
-                    uistack(hError, 'bottom');
+                if ~isempty(hStackAboveBaseline)
+                    uistack(hStackAboveBaseline, 'bottom');
                 end
                 uistack(hBaseline, 'bottom');
-                if ~isempty(hBar)
-                    uistack(hBar, 'bottom')
+                if ~isempty(hStackBelowBaseline)
+                    uistack(hStackBelowBaseline, 'bottom')
                 end
             end
             
