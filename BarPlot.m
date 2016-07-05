@@ -139,7 +139,9 @@ classdef BarPlot < handle
             set(axh, 'XMinorTick', 'off'); % in case grid is used
             set(axh, 'XTickLabels', repmat({''}, numel(allBarCenters), 1));
             
-            xlim([xLeft xRight]);
+            if xRight > xLeft
+                xlim([xLeft xRight]);
+            end
             aa.update();
             hold(axh, 'off');
         end

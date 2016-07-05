@@ -1,5 +1,6 @@
 classdef BarGroup < handle
     properties
+        FontName
         FontWeight
         FontSize
         FontColor
@@ -25,11 +26,13 @@ classdef BarGroup < handle
     
     methods
         function g = BarGroup(name, varargin)
+            ff = get(0, 'DefaultAxesFontName');
             sz = get(0, 'DefaultAxesFontSize');
             tc = get(0, 'DefaultTextColor');
             
             p = inputParser();
             p.addRequired('barPlot', @(bp) isa(bp, 'BarPlot'));
+            p.addParameter('FontName', ff, @ischar);
             p.addParameter('FontWeight', 'bold', @ischar);
             p.addParameter('FontSize', sz, @isscalar);
             p.addParameter('FontColor', tc, @(x) true);
@@ -44,6 +47,7 @@ classdef BarGroup < handle
             g.name = name;
             g.barPlot = p.Results.barPlot;
             
+            g.FontName = p.Results.FontName;
             g.FontWeight = p.Results.FontWeight;
             g.FontSize = p.Results.FontSize;
             g.FontColor = p.Results.FontColor;
@@ -128,7 +132,7 @@ classdef BarGroup < handle
                 hText = text(xCenter, 0, ...
                     g.name, 'Parent', axh, ...
                     'Color', g.FontColor, 'FontWeight', g.FontWeight, ...
-                    'FontSize', g.FontSize, ...
+                    'FontSize', g.FontSize, 'FontName', g.FontName, ...
                     'VerticalAlignment', 'top', 'HorizontalAlignment', 'center', 'Background', 'none');
    
                 a = AutoAxis.AnchorInfo(hText, PositionType.Top, 'BarPlot_barLabels', PositionType.Bottom, ...

@@ -44,7 +44,7 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
             
             p = inputParser();
             p.addRequired('group', @(g) isa(g, 'BarPlot.BarGroup'));
-            p.addRequired('label', @ischar);
+            p.addRequired('label', @(x) ischar(x) || iscellstr(x));
             p.addParameter('labelAbove', '', @(x) ischar(x) || iscellstr(x));
             p.addParameter('FontName', ff, @ischar);
             p.addParameter('FontWeight', 'normal', @ischar);

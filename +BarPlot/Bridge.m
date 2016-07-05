@@ -12,6 +12,7 @@ classdef Bridge < handle
         above
         avoidAdjacentBridges
         offset
+        labelOffset
         
         Color
         LineWidth
@@ -32,7 +33,7 @@ classdef Bridge < handle
             tc = get(0, 'DefaultTextColor');
             
             p = inputParser();
-            p.addRequired('label', @ischar);
+            p.addRequired('label', @(x) ischar(x) || iscell(x));
             p.addRequired('bar1', @(x) isa(x, 'BarPlot.Bar'));
             p.addRequired('bar2', @(x) isa(x, 'BarPlot.Bar'));
             p.addRequired('parent', @(x) isa(x, 'BarPlot.BarGroup') || isa(x, 'BarPlot'));
@@ -43,13 +44,15 @@ classdef Bridge < handle
             p.addParameter('Color', 'k', @(x)true);
             p.addParameter('LineWidth', 1, @isscalar);
             p.addParameter('baseline', 0, @isscalar);
-            p.addParameter('offset', 0.05, @isscalar);
+            p.addParameter('offset', 0.1, @isscalar);
+            p.addParameter('labelOffset', 0.05, @isscalar);
             p.addParameter('tickLength', 0.1, @(x) ischar(x) || isscalar(x)); % points
             p.addParameter('extendToBars', false, @islogical);
             p.addParameter('avoidAdjacentBridges', true, @islogical);
             p.parse(varargin{:});
             
             br.label = p.Results.label;
+            br.labelOffset = p.Results.labelOffset;
             br.bar1 = p.Results.bar1;
             br.bar2 = p.Results.bar2;
             br.Color = p.Results.Color;
@@ -157,13 +160,13 @@ classdef Bridge < handle
             if br.above
                 hText.VerticalAlignment = 'Baseline';
                 a = AutoAxis.AnchorInfo(hText, PositionType.Bottom, hLine, ...
-                    PositionType.Top, 0, ...
+                    PositionType.Top, br.labelOffset, ...
                     'BarPlot: anchor bridge label to top of bridge line');
                 aa.addAnchor(a);
             else
                 hText.VerticalAlignment = 'Cap';
                 a = AutoAxis.AnchorInfo(hText, PositionType.Top, hLine, ...
-                    PositionType.Bottom, 0, ...
+                    PositionType.Bottom, br.labelOffset, ...
                     'BarPlot: anchor bridge label to bottom of bridge line');
                 aa.addAnchor(a);
             end

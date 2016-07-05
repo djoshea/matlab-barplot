@@ -1,6 +1,7 @@
 function demo(varargin)
     p = inputParser();
     p.addParameter('style', 'rectangle', @ischar);
+    p.addParameter('ksdensity', true, @islogical);
     p.addParameter('seed', 1, @isscalar);
     p.addParameter('nGroups', 3, @isscalar);
     p.addParameter('nBars', 6, @isscalar);
@@ -53,7 +54,11 @@ function demo(varargin)
                 if p.Results.allPositive
                     v = abs(v);
                 end
-                g.addViolinBar(sprintf('Bar %d', iB), v, 'locationType', 'median', barArgsCommon{:});
+                if p.Results.ksdensity
+                    g.addViolinBar(sprintf('Bar %d', iB), v, 'locationType', 'median', 'style', 'ksdensity', barArgsCommon{:});
+                else
+                    g.addViolinBar(sprintf('Bar %d', iB), v, 'locationType', 'median', 'style', 'histogram', 'binWidth', 0.2, barArgsCommon{:});
+                end
             end
         end
 

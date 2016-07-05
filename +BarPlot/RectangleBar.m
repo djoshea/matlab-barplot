@@ -22,7 +22,7 @@ classdef RectangleBar < BarPlot.Bar
             p = inputParser();
             % redundant ways of specifying interval
             p.addRequired('group', @(g) isa(g, 'BarPlot.BarGroup'));
-            p.addRequired('label', @ischar);
+            p.addRequired('label', @(x) ischar(x) || iscellstr(x));
             p.addRequired('value', @isscalar);
             
             p.addParameter('confInt', [], @(x) isempty(x) || isvector(x));

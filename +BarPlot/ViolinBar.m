@@ -3,8 +3,19 @@ classdef ViolinBar < BarPlot.Bar
 
     properties
         values
+        
+        style
+        
+        % for histogram
+        useStairs
+        binEdges
+        binWidth
+        
+        % for ksdensity
         bandwidth
         support
+        
+        % for histogram style
         
         FaceColor
         EdgeColor
@@ -23,6 +34,14 @@ classdef ViolinBar < BarPlot.Bar
             p.addRequired('label', @ischar);
             p.addRequired('values', @isvector);
             
+            p.addParameter('style', 'ksdensity', @(s) any(validatestring(s, {'ksdensity','histogram'},'ViolinBar','style'))); % ksdensity or histogram
+            
+            % for histogram
+            p.addParameter('binEdges', [], @isvector);
+            p.addParameter('useStairs', true, @islogical); % draw histogram
+            p.addParameter('binWidth', [], @(x) isempty(x) || isscalar(x));
+            
+            % for ksdensity
             p.addParameter('bandwidth', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('support', 'unbounded', @(x) isvector(x) || ischar(x));
             
@@ -30,7 +49,7 @@ classdef ViolinBar < BarPlot.Bar
             p.addParameter('FaceColor', [0.5 0.5 0.5], @(x) true);
             p.addParameter('EdgeColor', 'none', @(x) true);
             
-            p.addParameter('locationType', 'mean', @(x) ischar(x) || iscell(x));
+            p.addParameter('locationType', 'median', @(x) ischar(x) || iscell(x));
             p.addParameter('LocationLineWidth', 1, @isvector); % in points
             p.addParameter('LocationLineColor', 'k', @(x) true);
             p.addParameter('LocationLineStyle', '-', @isvector);
@@ -42,13 +61,22 @@ classdef ViolinBar < BarPlot.Bar
             b@BarPlot.Bar(p.Results.group, p.Results.label, p.Unmatched);
             
             b.values = p.Results.values;
+            
+            b.style = p.Results.style;
+            b.bandwidth = p.Results.bandwidth;
+            b.support = p.Results.support;
+            
+            b.binEdges = p.Results.binEdges;
+            if isempty(b.binEdges)
+                b.binWidth = p.Results.binWidth;
+            end
+            b.useStairs = p.Results.useStairs;
+            
             b.locationType = p.Results.locationType;
             b.LocationLineWidth = p.Results.LocationLineWidth;
             b.LocationLineColor = p.Results.LocationLineColor;
             b.LocationLineStyle = p.Results.LocationLineStyle;
             
-            b.bandwidth = p.Results.bandwidth;
-            b.support = p.Results.support;
             
             b.FaceColor = p.Results.FaceColor;
             b.EdgeColor = p.Results.EdgeColor;
@@ -89,27 +117,77 @@ classdef ViolinBar < BarPlot.Bar
             % draw bar
             Y = b.values;
             
-            if strcmp(b.support, 'minmax')
-                support = [nanmin(Y) - eps(nanmin(Y)), nanmax(Y) + eps(nanmax(Y))]; %#ok<*PROPLC>
-            else
-                support = b.support;
-            end
-            if ~isempty(b.bandwidth)
-                [f, xi]=ksdensity(Y,'bandwidth', b.bandwidth, 'support', support);
-            else
-                [f, xi]=ksdensity(Y, 'support', support);
+            xCenter = xLeft + b.Width/2;
+            
+            if strcmp(b.style, 'ksdensity')
+                if strcmp(b.support, 'minmax')
+                    support = [nanmin(Y) - eps(nanmin(Y)), nanmax(Y) + eps(nanmax(Y))]; %#ok<*PROPLC>
+                else
+                    support = b.support;
+                end
+                if ~isempty(b.bandwidth)
+                    [f, xi]=ksdensity(Y,'bandwidth', b.bandwidth, 'support', support);
+                else
+                    [f, xi]=ksdensity(Y, 'support', support);
+                end
+                
+                f = f';
+                xi = xi';
+                
+                f=f/max(f)*b.Width/2; %normalize
+                XX = [f+xCenter; flipud(xCenter-f)];
+                YY = [xi; flipud(xi)];
+                
+            elseif strcmp(b.style, 'histogram')
+                if isempty(b.binEdges)
+                    if isempty(b.binWidth)
+                        [f, edges] = histcounts(Y);
+                    else
+                        [f, edges] = histcounts(Y, 'BinWidth', b.binWidth);
+                    end
+                else
+                    [f, edges] = histcounts(Y, b.binEdges);
+                end
+                
+                f = f';
+                edges = edges';
+                f=f/max(f)*b.Width/2; %normalize
+                
+                % strip 0s from above and below so that the histograms only
+                % extend as far as the distribution's support
+                idx1 = find(f > 0, 1, 'first');
+                if idx1 > 0
+                    f = f(idx1:end);
+                    edges = edges(idx1:end);
+                end
+                nTrail = numel(f) - find(f > 0, 1, 'last');
+                if nTrail > 0
+                    f = f(1:end-nTrail);
+                    edges = edges(1:end-nTrail);
+                end
+                
+                if ~isempty(f)
+                    if b.useStairs
+                        [yo, xo] = stairs(edges, [f; f(end)]);
+                        XX = [xo+xCenter; flipud(xCenter-xo)];
+                        YY = [yo; flipud(yo)];
+                    else
+                        xi = mean([edges(1:end-1) edges(2:end)], 2);
+                        XX = [f+xCenter; flipud(xCenter-f)];
+                        YY = [xi; flipud(xi)];
+                    end
+                end
             end
 
-            xCenter = xLeft + b.Width/2;
-            f=f/max(f)*b.Width/2; %normalize
-      
-            f = f';
-            xi = xi';
-            hViolin = fill([f+xCenter; flipud(xCenter-f)], [xi; flipud(xi)], b.FaceColor, ...
-                'EdgeColor', b.FaceColor);
-            aa.addHandlesToCollection(barCompsName, hViolin);
-            
-            hStackBelowBaseline = hViolin;
+            if ~isempty(f)
+                hViolin = fill(XX, YY, b.FaceColor, ...
+                    'EdgeColor', b.FaceColor);
+                aa.addHandlesToCollection(barCompsName, hViolin);
+
+                hStackBelowBaseline = hViolin;
+            else
+                hStackBelowBaseline = gobjects(0, 1);
+            end
             
             if ischar(b.locationType)
                 types = {b.locationType};
