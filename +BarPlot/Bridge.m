@@ -119,7 +119,7 @@ classdef Bridge < handle
             hLine = line(x, y, 'Color', br.Color, 'LineWidth', br.LineWidth);
             hText = text(xc, 0, br.label, 'Color', br.Color, 'HorizontalAlignment', 'center', ...
                 'Background', 'none', 'YLimInclude', 'on', 'Color', br.FontColor, ...
-                'FontName', br.FontName, 'FontWeight', br.FontWeight, 'FontSize', br.FontSize);      
+                'FontName', br.FontName, 'FontWeight', br.FontWeight, 'FontSize', br.FontSize, 'Margin', 0.001);      
             
             import AutoAxis.PositionType;
             if br.extendToBars
