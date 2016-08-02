@@ -101,10 +101,11 @@ classdef BarGroup < handle
             % render bars
             [hStackBelowBaseline, hStackAboveBaseline] = deal(cell(numel(g.bars)));
             for i = 1:numel(g.bars)
+                xc = xc + g.bars(i).gapExtraLeft;
                 [hStackBelowBaseline{i}, hStackAboveBaseline{i}] = g.bars(i).render(axh, aa, xc);
                 barCenters(i) = xc + g.bars(i).Width / 2;
                 xc = xc + g.bars(i).Width;
-                xc = xc + g.barGap;
+                xc = xc + g.barGap + g.bars(i).gapExtraRight;
             end
             hStackBelowBaseline = cat(1, hStackBelowBaseline{:});
             hStackAboveBaseline = cat(1, hStackAboveBaseline{:});

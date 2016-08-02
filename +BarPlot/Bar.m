@@ -20,6 +20,9 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
         LabelRotationAbove
         
         Width
+        
+        gapExtraLeft
+        gapExtraRight
     end
 
     properties(Dependent,SetAccess=private)
@@ -29,6 +32,7 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
 
         maxExtent
         minExtent
+        
     end
     
     properties(SetAccess=protected)
@@ -61,6 +65,10 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
             p.addParameter('LabelRotationAbove', 0, @isscalar);
             p.addParameter('Width', 0.8, @isscalar);
             
+            % in addition to the default bar gap set by this bar's group
+            p.addParameter('gapExtraLeft', 0, @isscalar);
+            p.addParameter('gapExtraRight', 0, @isscalar);
+            
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -83,6 +91,9 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
             b.LabelRotationAbove = p.Results.LabelRotationAbove;
             
             b.Width = p.Results.Width;
+            
+            b.gapExtraLeft = p.Results.gapExtraLeft;
+            b.gapExtraRight = p.Results.gapExtraRight;
             
             b.guid = num2str(matlab.internal.timing.timing('cpucount'));
         end
