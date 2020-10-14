@@ -14,9 +14,9 @@ classdef ViolinBar < BarPlot.Bar
         % for ksdensity
         bandwidth
         support
+        trimQuantiles
         
-        % for histogram style
-        
+        % for histogram style=
         FaceColor
         EdgeColor
         
@@ -44,6 +44,7 @@ classdef ViolinBar < BarPlot.Bar
             % for ksdensity
             p.addParameter('bandwidth', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('support', 'unbounded', @(x) isvector(x) || ischar(x));
+            p.addParameter('trimQuantiles', [], @(x) isempty(x) || isvector(x) || isscalar(x)); % trim the original data to the central X% by quantile to eliminate long tails in the ks density
             
             % appearance
             p.addParameter('FaceColor', [0.5 0.5 0.5], @(x) true);
@@ -66,6 +67,17 @@ classdef ViolinBar < BarPlot.Bar
             b.bandwidth = p.Results.bandwidth;
             b.support = p.Results.support;
             
+            trimQuantiles = p.Results.trimQuantiles;
+            if isscalar(trimQuantiles)
+                % cover this fraction of the central range
+                alpha = (1 - trimQuantiles)/2;
+                b.trimQuantiles = [alpha, 1 - alpha];
+            elseif numel(trimQuantiles) == 2
+                b.trimQuantiles = trimQuantiles(:)';
+            else
+                b.trimQuantiles = [];
+            end
+            
             b.binEdges = p.Results.binEdges;
             if isempty(b.binEdges)
                 b.binWidth = p.Results.binWidth;
@@ -76,7 +88,6 @@ classdef ViolinBar < BarPlot.Bar
             b.LocationLineWidth = p.Results.LocationLineWidth;
             b.LocationLineColor = p.Results.LocationLineColor;
             b.LocationLineStyle = p.Results.LocationLineStyle;
-            
             
             b.FaceColor = p.Results.FaceColor;
             b.EdgeColor = p.Results.EdgeColor;
@@ -93,24 +104,32 @@ classdef ViolinBar < BarPlot.Bar
         end
 
         function val = getMaxExtent(b)
-            val = nanmax(b.values);
+            if ~isempty(b.trimQuantiles)
+                val = quantile(b.values, b.trimQuantiles(2));
+            else
+                val = nanmax(b.values);
+            end
         end
 
         function val = getMinExtent(b)
-            val = nanmin(b.values);
+            if ~isempty(b.trimQuantiles)
+                val = quantile(b.values, b.trimQuantiles(1));
+            else
+                val = nanmin(b.values);
+            end
         end
         
         function v = getHeightRelativeToBaseline(b)
             if b.above
-                v = max(b.values - b.baseline);
+                v = b.getMaxExtent() - b.baseline;
             else
-                v = -min(b.values - b.baseline);
+                v = -(b.getMinExtent() - b.baseline);
             end
         end
     end
     
     methods(Access={?BarPlot.Bar,?BarPlot.BarGroup})
-        function [hStackBelowBaseline, hStackAboveBaseline] = renderInternal(b, axh, aa, xLeft)
+        function [hStackBelowBaseline, hStackAboveBaseline] = renderInternal(b, axh, aa, xLeft) %#ok<INUSL>
             % collection to use for components of bars
             barCompsName = b.getComponentsCollectionName();
             
@@ -129,6 +148,13 @@ classdef ViolinBar < BarPlot.Bar
                     [f, xi]=ksdensity(Y,'bandwidth', b.bandwidth, 'support', support);
                 else
                     [f, xi]=ksdensity(Y, 'support', support);
+                end
+                
+                if ~isempty(b.trimQuantiles)
+                    vals = quantile(Y, b.trimQuantiles);
+                    mask = xi < vals(1) | xi > vals(2);
+                    f(mask) = [];
+                    xi(mask) = [];
                 end
                 
                 f = f';

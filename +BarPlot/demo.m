@@ -76,7 +76,7 @@ function demo(varargin)
             eligMat(i, j) = false;
             g.addBridge(repmat('*', 1, min(4, j-i+1)), g.bars(i), g.bars(j), ...
                 'tickLength', p.Results.bridgeTickLength, 'avoidAdjacentBridges', p.Results.avoidAdjacentBridges, ...
-                'FontName', 'Monaco', 'FontSize', 12, 'extendToBars', p.Results.bridgesExtendToBars);
+                'FontSize', 6, 'extendToBars', p.Results.bridgesExtendToBars);
         end
     end
 
@@ -96,7 +96,7 @@ function demo(varargin)
         eligMat(i, j) = false;
         bp.addBridge('**', allBars(i), allBars(j), ...
             'tickLength', p.Results.bridgeTickLength, 'avoidAdjacentBridges', p.Results.avoidAdjacentBridges, ...
-            'FontName', 'Monaco', 'FontSize', 12, 'extendToBars', p.Results.bridgesExtendToBars);
+            'FontSize', 6, 'extendToBars', p.Results.bridgesExtendToBars);
     end
 
     bp.render();

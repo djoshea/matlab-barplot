@@ -127,7 +127,10 @@ classdef RectangleBar < BarPlot.Bar
             barCompsName = b.getComponentsCollectionName();
             
             % draw bar
-            if(b.value ~= b.group.baseline)
+            if isnan(b.value)
+                warning('Skipping bar %s with NaN value', b.label);
+                hBar = gobjects(0, 1);
+            elseif(b.value ~= b.group.baseline)
                 hBar = rectangle('Position', [xc, min(b.group.baseline, b.value), b.Width, abs(b.value-b.group.baseline)], ...
                     'Parent', axh, 'FaceColor', b.FaceColor, 'EdgeColor', b.EdgeColor);
                 aa.addHandlesToCollection(barCompsName, hBar);
