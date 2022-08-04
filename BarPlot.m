@@ -15,7 +15,7 @@ classdef BarPlot < handle
         function bp = BarPlot(varargin)
             p = inputParser();
             p.addParameter('groupGap', 1, @isscalar);
-            p.addParameter('ylabel', '', @ischar);
+            p.addParameter('ylabel', '', @isstringlike);
             p.parse(varargin{:});
             
             bp.ylabel = p.Results.ylabel;

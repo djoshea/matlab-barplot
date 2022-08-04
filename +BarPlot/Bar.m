@@ -95,7 +95,7 @@ classdef Bar < handle & matlab.mixin.Heterogeneous
             b.gapExtraLeft = p.Results.gapExtraLeft;
             b.gapExtraRight = p.Results.gapExtraRight;
             
-            b.guid = num2str(matlab.internal.timing.timing('cpucount'));
+            b.guid = num2str(matlab.internal.timing.timing('unixtimeofday'));
         end
     end
     

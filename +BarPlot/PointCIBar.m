@@ -1,41 +1,40 @@
-classdef RectangleBar < BarPlot.Bar
-% function to plot bar plots with error bars
+classdef PointCIBar < BarPlot.Bar
+% single point with a confidence interval around it
 
     properties
         value
-        
-        error
-        errorLow
-        errorHigh
         confHigh
         confLow
         
-        FaceColor
-        EdgeColor
+        MarkerSize
+        MarkerLineWidth
+        MarkerFaceColor
+        MarkerEdgeColor
         
         ErrorLineWidth
         ErrorColor
     end
     
     methods(Access={?BarPlot,?BarPlot.BarGroup})
-        function b = RectangleBar(varargin)
+        function b = PointCIBar(varargin)
             p = inputParser();
             % redundant ways of specifying interval
             p.addRequired('group', @(g) isa(g, 'BarPlot.BarGroup'));
-            p.addRequired('label', @(x) ischar(x) || isstringlike(x));
+            p.addRequired('label', @(x) ischar(x) || iscellstr(x));
             p.addRequired('value', @isscalar);
             
             p.addParameter('confInt', [], @(x) isempty(x) || isvector(x));
             p.addParameter('confLow', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('confHigh', [], @(x) isempty(x) || isscalar(x));
-            p.addParameter('errorLow', [], @(x) isempty(x) || isscalar(x));
-            p.addParameter('errorHigh', [], @(x) isempty(x) || isscalar(x));
-            p.addParameter('error', [], @(x) isempty(x) || isscalar(x));
             
             % appearance
+            p.addParameter('MarkerSize', 5, @isscalar); % in points
+            p.addParameter('MarkerLineWidth', 0.5, @isscalar); % in points
+            p.addParameter('MarkerFaceColor', [0.5 0.5 0.5], @(x) true);
+            p.addParameter('MarkerEdgeColor', 'none', @(x) true);
+
             p.addParameter('ErrorLineWidth', 3, @isscalar); % in points
-            p.addParameter('FaceColor', [0.5 0.5 0.5], @(x) true);
-            p.addParameter('EdgeColor', 'none', @(x) true);
+            
             p.addParameter('ErrorColor', [0.4 0.4 0.4], @(x) true);
             
             p.CaseSensitive = false;
@@ -44,8 +43,10 @@ classdef RectangleBar < BarPlot.Bar
             
             b@BarPlot.Bar(p.Results.group, p.Results.label, p.Unmatched);
             b.value = p.Results.value;
-            b.FaceColor = p.Results.FaceColor;
-            b.EdgeColor = p.Results.EdgeColor;
+            b.MarkerSize = p.Results.MarkerSize;
+            b.MarkerLineWidth = p.Results.MarkerLineWidth;
+            b.MarkerFaceColor = p.Results.MarkerFaceColor;
+            b.MarkerEdgeColor = p.Results.MarkerEdgeColor;
             b.ErrorColor = p.Results.ErrorColor;
             b.ErrorLineWidth = p.Results.ErrorLineWidth;
              
@@ -56,15 +57,12 @@ classdef RectangleBar < BarPlot.Bar
                 b.confLow = p.Results.confLow;
                 b.confHigh = p.Results.confHigh;
             end
-            b.errorLow = p.Results.errorLow;
-            b.errorHigh = p.Results.errorHigh;
-            b.error = p.Results.error;
         end
     end
         
     methods
         function name = getComponentsCollectionName(b)
-            name = sprintf('BarPlot_barComps_%s', b.guid);
+            name = sprintf('BarPlot_pointCIComps_%s', b.guid);
         end
         
         function v = getHeightRelativeToBaseline(b)
@@ -76,40 +74,14 @@ classdef RectangleBar < BarPlot.Bar
         end
 
         function val = getMaxExtent(b)
-            if ~isempty(b.error)
-                % just show on one side
-                if b.above
-                    val = b.value + b.error;
-                else
-                    val = b.value;
-                end
-            else
-                if ~isempty(b.errorHigh)
-                    val= b.value + b.errorHigh;
-                else
-                    val = b.confHigh;
-                end
-            end
+            val = b.confHigh;
             if isempty(val)
                 val = b.value;
             end
         end
 
         function val = getMinExtent(b)
-            if ~isempty(b.error)
-                % just show on one side
-                if b.above
-                    val = b.value;
-                else
-                    val = b.value - b.error;
-                end
-            else
-                if ~isempty(b.errorLow)
-                    val= b.value - b.errorLow;
-                else
-                    val = b.confLow;
-                end
-            end
+            val = b.confLow;
             if isempty(val)
                 val = b.value;
             end
@@ -129,18 +101,19 @@ classdef RectangleBar < BarPlot.Bar
             % draw bar
             if isnan(b.value)
                 warning('Skipping bar %s with NaN value', b.label);
-                hBar = gobjects(0, 1);
+                hMarker = gobjects(0, 1);
             elseif(b.value ~= b.group.baseline)
-                hBar = rectangle('Position', [xc, min(b.group.baseline, b.value), b.Width, abs(b.value-b.group.baseline)], ...
-                    'Parent', axh, 'FaceColor', b.FaceColor, 'EdgeColor', b.EdgeColor);
-                aa.addHandlesToCollection(barCompsName, hBar);
+                hMarker = plot(xc, b.value, 'o', Parent=axh, ...
+                    MarkerSize=b.MarkerSize, MarkerFaceColor=b.MarkerFaceColor, ...
+                    MarkerEdgeColor=b.MarkerEdgeColor, LineWidth=b.MarkerLineWidth);
+                aa.addHandlesToCollection(barCompsName, hMarker);
             else
-                hBar = gobjects(0, 1);
+                hMarker = gobjects(0, 1);
             end
             
             % draw error
             if confHigh ~= confLow
-                hError = line([xc xc]+b.Width/2, [confLow confHigh], 'LineWidth', b.ErrorLineWidth, ...
+                hError = line([xc xc], [confLow confHigh], 'LineWidth', b.ErrorLineWidth, ...
                     'Parent', axh, 'Color', b.ErrorColor);
                 hasbehavior(hError, 'legend', false);
                 aa.addHandlesToCollection(barCompsName, hError);
@@ -148,7 +121,7 @@ classdef RectangleBar < BarPlot.Bar
                 hError = gobjects(0, 1);
             end
             
-            hStackBelowBaseline = hBar;
+            hStackBelowBaseline = hMarker;
             hStackAboveBaseline = hError;
         end
     end

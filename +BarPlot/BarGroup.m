@@ -58,7 +58,7 @@ classdef BarGroup < handle
             g.baselineOverhang = p.Results.baselineOverhang;
             g.barGap = p.Results.barGap;
             
-            b.guid = num2str(matlab.internal.timing.timing('cpucount'));
+            g.guid = num2str(matlab.internal.timing.timing('unixtimeofday'));
         end
         
         function b = addBar(g, label, value, varargin)
@@ -79,6 +79,15 @@ classdef BarGroup < handle
             end
         end
         
+        function b = addPointCIBar(g, label, value, varargin)
+            b = BarPlot.PointCIBar(g, label, value, varargin{:});
+            if isempty(g.bars)
+                g.bars = b;
+            else
+                g.bars(end+1, 1) = b;
+            end
+        end
+
         function br = addBridge(g, label, bar1, bar2, varargin)
             assert(ismember(bar1, g.bars), 'Bar 1 not found within group, call addBridge on BarPlot root instead');
             assert(ismember(bar2, g.bars), 'Bar 2 not found within group, call addBridge on BarPlot root instead');
@@ -114,6 +123,15 @@ classdef BarGroup < handle
             
              % add baseline
             if ~isempty(g.baseline) && ~isnan(g.baseline)
+%                 if isnan(g.baseline)
+%                     if axh.YDir == "normal"
+%                         baseline = axh.YLim(1);
+%                     else
+%                         baseline = axh.YLim(2);
+%                     end
+%                 else
+%                     baseline = g.baseline;
+%                 end
                 hBaseline = line([xLeft xRight], [g.baseline g.baseline], ...
                 'LineWidth', g.baselineLineWidth, 'Parent', axh, ...
                 'Color', g.baselineColor);

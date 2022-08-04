@@ -15,6 +15,7 @@ classdef ViolinBar < BarPlot.Bar
         bandwidth
         support
         trimQuantiles
+        trimQuantileMultiplier
         
         % for histogram style=
         FaceColor
@@ -45,6 +46,7 @@ classdef ViolinBar < BarPlot.Bar
             p.addParameter('bandwidth', [], @(x) isempty(x) || isscalar(x));
             p.addParameter('support', 'unbounded', @(x) isvector(x) || ischar(x));
             p.addParameter('trimQuantiles', [], @(x) isempty(x) || isvector(x) || isscalar(x)); % trim the original data to the central X% by quantile to eliminate long tails in the ks density
+            p.addParameter('trimQuantileMultiplier', 1, @isscalar); 
             
             % appearance
             p.addParameter('FaceColor', [0.5 0.5 0.5], @(x) true);
@@ -77,6 +79,7 @@ classdef ViolinBar < BarPlot.Bar
             else
                 b.trimQuantiles = [];
             end
+            b.trimQuantileMultiplier = p.Results.trimQuantileMultiplier;
             
             b.binEdges = p.Results.binEdges;
             if isempty(b.binEdges)
@@ -100,22 +103,24 @@ classdef ViolinBar < BarPlot.Bar
         end
 
         function tf = getIsAboveBaseline(b)
-            tf = nanmedian(b.values) > b.baseline;
+            tf = median(b.values, 'omitnan') > b.baseline;
         end
 
         function val = getMaxExtent(b)
+            valmax = max(b.values, [], 'omitnan');
             if ~isempty(b.trimQuantiles)
-                val = quantile(b.values, b.trimQuantiles(2));
+                val = min(quantile(b.values, b.trimQuantiles(2)) * b.trimQuantileMultiplier, valmax);
             else
-                val = nanmax(b.values);
+                val = valmax;
             end
         end
 
         function val = getMinExtent(b)
+            valmin = min(b.values, [], 'omitnan');
             if ~isempty(b.trimQuantiles)
-                val = quantile(b.values, b.trimQuantiles(1));
+                val = max(quantile(b.values, b.trimQuantiles(1)) * b.trimQuantileMultiplier, valmin);
             else
-                val = nanmin(b.values);
+                val = valmin;
             end
         end
         
@@ -134,24 +139,30 @@ classdef ViolinBar < BarPlot.Bar
             barCompsName = b.getComponentsCollectionName();
             
             % draw bar
-            Y = b.values;
+            V = b.values;
+            minV = min(V, [], 'omitnan');
+            maxV = max(V, [], 'omitnan');
             
             xCenter = xLeft + b.Width/2;
             
             if strcmp(b.style, 'ksdensity')
                 if strcmp(b.support, 'minmax')
-                    support = [nanmin(Y) - eps(nanmin(Y)), nanmax(Y) + eps(nanmax(Y))]; %#ok<*PROPLC>
+                    support = [minV - eps(minV), maxV + eps(maxV)]; %#ok<*PROPLC>
                 else
                     support = b.support;
                 end
                 if ~isempty(b.bandwidth)
-                    [f, xi]=ksdensity(Y,'bandwidth', b.bandwidth, 'support', support);
+                    [f, xi]=ksdensity(V,'bandwidth', b.bandwidth, 'support', support);
                 else
-                    [f, xi]=ksdensity(Y, 'support', support);
+                    [f, xi]=ksdensity(V, 'support', support);
                 end
                 
                 if ~isempty(b.trimQuantiles)
-                    vals = quantile(Y, b.trimQuantiles);
+                    med = median(V, 'omitnan');
+                    vals = quantile(V, b.trimQuantiles);
+                    % expand the quantiles away from the median if requested (trimQuantileMultiplier > 1)
+                    vals(1) = (vals(1) - med) * b.trimQuantileMultiplier + med;
+                    vals(2) = (vals(2) - med) * b.trimQuantileMultiplier + med;
                     mask = xi < vals(1) | xi > vals(2);
                     f(mask) = [];
                     xi(mask) = [];
@@ -234,17 +245,21 @@ classdef ViolinBar < BarPlot.Bar
                 if ischar(types{iM}) 
                     switch types{iM}
                         case 'median'
-                            v = nanmedian(Y);
+                            v = median(V, 'omitnan');
                         case 'mean'
-                            v = nanmean(Y);
+                            v = mean(V, 'omitnan');
+                        case 'none'
+                            v = NaN;
                         otherwise
                             error('Unknown locationType %s', types{iM});
                     end
                 else
                     v = quantile(Y, types{iM});
                 end
-                h(iM) = line(xLeft +  [0 b.Width], [v v], 'LineStyle', ls{iM}, ...
-                    'LineWidth', lw(iM), 'Color', fc(iM, :));
+                if ~isnan(v)
+                    h(iM) = line(xLeft +  [0 b.Width], [v v], 'LineStyle', ls{iM}, ...
+                        'LineWidth', lw(iM), 'Color', fc(iM, :));
+                end
             end
             
             aa.addHandlesToCollection(barCompsName, hViolin);

@@ -33,7 +33,7 @@ classdef Bridge < handle
             tc = get(0, 'DefaultTextColor');
             
             p = inputParser();
-            p.addRequired('label', @(x) ischar(x) || iscell(x));
+            p.addRequired('label', @isstringlike);
             p.addRequired('bar1', @(x) isa(x, 'BarPlot.Bar'));
             p.addRequired('bar2', @(x) isa(x, 'BarPlot.Bar'));
             p.addRequired('parent', @(x) isa(x, 'BarPlot.BarGroup') || isa(x, 'BarPlot'));
@@ -51,7 +51,7 @@ classdef Bridge < handle
             p.addParameter('avoidAdjacentBridges', true, @islogical);
             p.parse(varargin{:});
             
-            br.label = p.Results.label;
+            br.label = string(p.Results.label);
             br.labelOffset = p.Results.labelOffset;
             br.bar1 = p.Results.bar1;
             br.bar2 = p.Results.bar2;
@@ -69,7 +69,7 @@ classdef Bridge < handle
             
             % above or below
             br.parent = p.Results.parent;
-            br.guid = num2str(matlab.internal.timing.timing('cpucount'));
+            [~, br.guid] = fileparts(tempname);
         end
     end
       
